@@ -1,0 +1,146 @@
+---
+title: "ESCAP website scraping"
+date:  "31 July, 2024"
+author: "Christophe Bontemps"
+
+toc: true
+format: 
+     html:
+        code-fold: false
+     pdf:
+        documentclass: report
+editor: visual
+---
+
+#### Foreword
+
+*We use the code developed by Frances in a **quarto** notebook (see <https://quarto.org>) to create a nice output page embedding code and outputs.*
+
+# Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+## Loading libraries
+
+First we load the required libraries, here we need `pandas` (for data manipulation), `request` (for http requests) and `beautifulsoup4` (for web scraping).
+
+> In this environment one need to change a bit the *pip* command and insert a `!` at the beginning of the line
+
+*Since this need to be done only once, we commented this line below*
+
+```{python}
+# !pip install requests beautifulsoup4 pandas
+```
+
+Importing the libraries follows the usual python syntax:
+
+```{python}
+# The requests package provides a user-friendly interface for sending HTTP requests
+import requests 
+
+# This imports the BeautifulSoup class from the bs4 module provided by the installed package beautifulsoup4
+# The BeautifulSoup class creates a parse tree for parsed pages that can be used to extract data from HTML
+from bs4 import BeautifulSoup 
+
+# The pandas package provides data structures and functions needed to efficiently manipulate large datasets
+import pandas as pd 
+
+```
+
+## Defining the URL to scrape
+
+We will scrape ESCAP web page and its events. The page can be viewed here. At the time of the demo, there are 8 events listed. We will then check the respond from the website and if this returns a valid code (such as `200`) we will enter into the web scraping code, otherwise a message will be displayed.
+
+```{python}
+# Define the URL of the ESCAP website
+url = "https://unescap.org/events"
+
+# Send a GET request to the URL
+response = requests.get(url)
+```
+
+## Scraping ESCAP's website
+
+The algorithm is quite simple, although it has to be in a single code chunk ;-)
+
+`If` the URL is responding to the request `then` (otherwise print a message):
+
+-   Capture all events in object `soup`
+-   In all of this html code, find the list of events ( ***inspect*** the website for that!) and store that result in a list `events`
+-   `for`any element in this list (any event),
+    -   Find the relevant information using `find()` function in Python.
+    -   Parse the information to extract only the text
+    -   Store the information in lists `event_names` and `event_places` using the function `append()` and the appropriate name
+    -   Continue the loop until the end of the `events` list
+-   Finally, put everything in a data frame and export it
+
+```{python}
+
+# Check if the request was successful
+if response.status_code == 200:
+    # Parse the HTML content using BeautifulSoup
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    # Find the product listings (see on the html page "inspect")
+    events = soup.find_all("div", class_="card-body")
+    
+    # Create empty lists to store the data
+    event_names= []
+    event_places = []
+    
+    # Loop through the event listings and extract the data
+    for event in events:
+        name_tag = event.find("h5", class_="card-title")   
+        # Find the h5 tag first with class = "card-title" 
+        #  Be careful there is a  _ after class, because class is a python reverved word 
+        
+        place_tag = event.find("p", class_="sub-text location-icon")  
+        # Find the price tag , here it is "price_color" 
+
+        # Parse the information to extract only the text 
+        if name_tag:
+            name = name_tag.text.strip()  
+            # gets the text content of the element (which in this case can be cut off with '...')
+            # name = name_tag['title'].strip()  # Alternative approach
+                                                #  use the title attribute to get the FULL title from the href
+            
+        else: # to account for empty fields
+            name = "N/A"
+            
+        # Now extracting text for place
+        if place_tag:
+            place = place_tag.text.strip()
+        else:
+            place = "N/A" 
+        
+        event_names.append(name)
+        event_places.append(place)
+    
+    # Create a DataFrame from the lists using panda (pd))
+    df = pd.DataFrame({
+        "Event Name": event_names,
+        "Event Place": event_places
+    })
+    
+    # Save the DataFrame to a CSV file
+    df.to_csv("Outputs/ESCAP-events.csv", index=False, sep=","  )
+    
+    print("Data has been written to ESCAP-events.csv")
+else:
+    print("Failed to retrieve the webpage.")
+```
+
+## Viewing the results
+
+It is very easy - using R here ;-) - to visualize he output
+
+```{r echo=FALSE}
+mydf <- read.csv("Outputs/ESCAP-events.csv")
+```
+
+We currently (as of *`r format(Sys.Date(), "%A %d %B, %Y ")`* ) have **`r nrow(df)-1`** event listed in ESCAP's website. The list is presented below:
+
+```{r}
+library(kableExtra)
+kable(mydf)
+```
