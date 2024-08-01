@@ -1,5 +1,5 @@
 ---
-title: "ESCAP website scraping"
+title: "ESCAP website scraping exercise"
 date:  "31 July, 2024"
 author: "Christophe Bontemps"
 
@@ -14,7 +14,7 @@ editor: visual
 
 #### Foreword
 
-*We use the code developed by Frances in a **quarto** notebook (see <https://quarto.org>) to create a nice output page embedding code and outputs.*
+*We use the code developed by Frances in a **quarto** notebook (see <https://quarto.org>) to create a nice output page embedding code and outputs. The current document is hosted on my GitHub account (*<https://github.com/XtopheB/WebScraping>)
 
 # Running Code
 
